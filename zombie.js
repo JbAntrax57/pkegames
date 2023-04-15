@@ -9,7 +9,7 @@ export class Zombie {
         this.player = player;
 
         const radius = 16;
-        this.speed= 2;
+        this.speed = 1;
         this.zombie = new PIXI.Graphics();
         let r = this.randomSpawnPoint();
         this.zombie.position.set(r.x, r.y);
@@ -19,18 +19,34 @@ export class Zombie {
         this.app.stage.addChild(this.zombie);
     }
 
-    update() {
+    attackPlayer() {
+      if(this.attacking) return;
+      this.attacking = true;
+      this.interval = setInterval(() => this.player.attack(), 500);
+    }
+
+    update(delta) {
         let e = new Victor(this.zombie.position.x, this.zombie.position.y);
         let s = new Victor(this.player.position.x, this.player.position.y);
         if(e.distance(s)< this.player.width / 2){
-            let r = this.randomSpawnPoint();
-            this.zombie.position.set(r.x,r.y);
-            return;
+          this.attackPlayer();
+            /* let r = this.randomSpawnPoint();
+            this.zombie.position.set(r.x,r.y); */
+          return;
         }
         let d = s.subtract(e);
-        let v = d.normalize().multiplyScalar(this.speed);
+        let v = d.normalize().multiplyScalar(this.speed * delta);
         this.zombie.position.set(this.zombie.position.x + v.x, this.zombie.position.y + v.y);
     }
+
+    kill() {
+      this.app.stage.removeChild(this.zombie);
+      clearInterval(this.interval);
+    }
+
+    get position() {
+      return this.zombie.position;
+    } 
 
     randomSpawnPoint() {
         let edge = 0; //= Math.floor(Math.random() * 4);
