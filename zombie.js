@@ -1,21 +1,28 @@
 import * as PIXI from "pixi.js";
-
 import {Player} from "./player.js";
 import Victor from "victor";
+import {zombies} from "./globals.js";
 
 export class Zombie {
     constructor({app, player}) {
         this.app = app;
         this.player = player;
 
-        const radius = 16;
         this.speed = 1;
-        this.zombie = new PIXI.Graphics();
+
+let zombieName = zombies[Math.floor(Math.random()*zombies.length)];
+this.speed = zombieName === "quickzee" ? 1: 0.25;
+let sheet = PIXI.Loader.shared.resources[`assets/${zombieName}.json`].spritesheet;
+
+this.die = new PIXI.AnimatedSprite(sheet.animations["die"]);
+this.attack = new PIXI.AnimatedSprite(sheet.animations["attack"]);
+this.zombie = new PIXI.AnimatedSprite(sheet.animations["walk"]);
+this.zombie.animationSpeed = zombieName === "quickzee" ? 0.2 : 0.1;
+this.zombie.play();
+this.zombie.anchor.set(0.5);
+
         let r = this.randomSpawnPoint();
         this.zombie.position.set(r.x, r.y);
-        this.zombie.beginFill(0xFF0000, 1);
-        this.zombie.drawCircle(0, 0, radius);
-        this.zombie.endFill();
         this.app.stage.addChild(this.zombie);
     }
 
@@ -23,6 +30,9 @@ export class Zombie {
       if(this.attacking) return;
       this.attacking = true;
       this.interval = setInterval(() => this.player.attack(), 500);
+      this.zombie.textures = this.attack.textures;
+      this.zombie.animationSpeed = 0.1;
+      this.zombie.play();
     }
 
     update(delta) {
@@ -36,11 +46,17 @@ export class Zombie {
         }
         let d = s.subtract(e);
         let v = d.normalize().multiplyScalar(this.speed * delta);
+        this.zombie.scale.x = v.x < 0 ? 1 : -1;
         this.zombie.position.set(this.zombie.position.x + v.x, this.zombie.position.y + v.y);
     }
 
     kill() {
-      this.app.stage.removeChild(this.zombie);
+      // this.app.stage.removeChild(this.zombie);
+      this.zombie.textures = this.die.textures;
+      this.zombie.loop = false;
+      this.zombie.onComplete = ()=>
+       setTimeout(()=>this.app.stage.removeChild(this.zombie),30000);
+      this.zombie.play();
       clearInterval(this.interval);
     }
 
